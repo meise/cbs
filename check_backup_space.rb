@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 =begin
-Copyright Daniel Meißner <meise+check_hetzner_backup_space@3st.be>, 2012
+Copyright Daniel Meißner <meise+check_backup_space@3st.be>, 2012
 
 This file is part of a nagios check script to monitor available disk space on a
 remote server, reached e.g. via sftp.
@@ -24,21 +24,24 @@ require 'rubygems'
 require 'optparse'
 require 'pathname'
 
-class Chbs
+# Using Semantic Versioning (2.0.0-rc.1) rules
+# @see http://semver.org/
+# @author Daniel Meißner
 
-  # The current script version.
+# Script to check disk space on remote systems via (s)ftp or ssh.
+class Cbs
 
-  # Using Semantic Versioning (2.0.0-rc.1) rules
-  # @see http://semver.org/
-  # @author Daniel Meißner
-  NAME    = 'Chbs'
+  NAME    = 'Cbs'
   VERSION = '0.0.1'
 
 end
 
-class Chbs::Parser
+# Class to parse options from command line.
+class Cbs::Parser
 
-  # @return [Hash]
+  # Run parser.
+  #
+  # @return [Hash] of options the parser detected.
   def self.run!
     options = {}
 
@@ -101,7 +104,7 @@ class Chbs::Parser
 
       opts.on_tail("-v", "--version", "Show #{$0} version") do
         puts <<-MOEP
-#{$0} - v#{Chbs::VERSION}
+#{$0} - v#{Cbs::VERSION}
 Released under the GNU GENERAL PUBLIC LICENSE Version 3. © Daniel Meißner, 2012
         MOEP
 
@@ -114,7 +117,9 @@ Released under the GNU GENERAL PUBLIC LICENSE Version 3. © Daniel Meißner, 201
 
   protected
 
-  # @param [Hash]
+  # Class method to check that all needed options are present. This function is only used in *run!* method.
+  #
+  # @param [Hash] options
   # @return [Hash]
   def self.check_arguments( options = {} )
     missing_arguments = []
@@ -142,18 +147,21 @@ Released under the GNU GENERAL PUBLIC LICENSE Version 3. © Daniel Meißner, 201
     options
   end
 
-  # @param [String, Pathname]
-  # @return [String]
+  # Password can be read from password file. This method implements that functionality,
+  #
+  # @param [Pathname, String] file for password
+  # @return [String] password read from file.
   def self.read_password(file)
     File.read( Pathname.new(file) ).chomp
   end
 end
 
-class Chbs::SpaceChecker
+class Cbs::SpaceChecker
+  # @return [String] password read from password file.s
 
   attr_reader :disk_usage, :free_space, :quota
 
-  # @param [Hash]
+  # @param [Hash] options
   def initialize( options = {} )
     @options    = options
     @disk_usage = get_disk_usage
@@ -161,26 +169,43 @@ class Chbs::SpaceChecker
     @free_space = calculate_free_space(@quota, @disk_usage)
   end
 
-  # @return [Float]
+  # Function to check dependencies
+  #
+  # Lftp is used to check available disk space. This program must be installed.
+  def check_dependencies
+    @lftp = %x{which lftp}.chomp
+
+    if @lftp.empty?
+      puts 'Lftp program is missing.'
+      exit 3
+    end
+  end
+
+  # Connect to remote disk and returned disk usage as floating number.
+  #
+  # @return [Float] Disk usage.
   def get_disk_usage
     # result in bytes
-    result = %x{lftp -u #{@options[:user]},#{@options[:password]} #{@options[:protocol]}://#{@options[:host]} -e "du -sb .; exit"}
+    result = %x{#{@lftp} -u #{@options[:user]},#{@options[:password]} #{@options[:protocol]}://#{@options[:host]} -e "du -sb .; exit"}
 
     result.gsub(/\D/, '').to_f
   end
 
-  # @param [Float, Float]
-  # @return [Float]
+  # Calculates free disk space on given values.
+  #
+  # @param [Float, Float] quota quota limit and disk usage.
+  # @return [Float] of free space.
   def calculate_free_space(quota, disk_usage)
     quota - (disk_usage/1024/1024/1024)
   end
 end
 
-class Chbs::Interpreter
+# Interpreter class is used to interpret the results given by SpaceChecker.
+class Cbs::Interpreter
 
   attr_accessor :status, :critical, :warning
 
-  # @param [Integer, Integer, Float]
+  # @param [Integer, Integer, Float] warning
   def initialize(warning, critical, free_space)
     @warning    = warning
     @critical   = critical
@@ -189,10 +214,10 @@ class Chbs::Interpreter
     @status     = { :label => '', :exit_code => nil }
   end
 
-  # @param [Integer, Integer, Float]
+  # @param [Integer, Integer, Float] warning
   # @return [Interpreter]
   def self.interpret(warning, critical, free_space)
-    assesor = Chbs::Interpreter.new(warning, critical, free_space)
+    assesor = Cbs::Interpreter.new(warning, critical, free_space)
     assesor.interpret
   end
 
@@ -200,14 +225,14 @@ class Chbs::Interpreter
   def interpret
     if @free_space < @warning
       if @free_space < @critical
-        @status[:label] = 'CRITICAL'
+        @status[:label]     = 'CRITICAL'
         @status[:exit_code] = 2
       else
-        @status[:label] = 'WARNING'
+        @status[:label]     = 'WARNING'
         @status[:exit_code] = 1
       end
     else
-      @status[:label] = 'OK'
+      @status[:label]     = 'OK'
       @status[:exit_code] = 0
     end
 
@@ -215,9 +240,9 @@ class Chbs::Interpreter
   end
 end
 
-options       = Chbs::Parser.run!
-space_checker = Chbs::SpaceChecker.new(options)
-result        = Chbs::Interpreter.interpret(options[:warning], options[:critical], space_checker.free_space )
+options       = Cbs::Parser.run!
+space_checker = Cbs::SpaceChecker.new(options)
+result        = Cbs::Interpreter.interpret(options[:warning], options[:critical], space_checker.free_space )
 
 puts "BACKUP_SPACE #{result.status[:label]} - free space: #{space_checker.free_space.to_i}GB of #{space_checker.quota}GB (w: #{result.warning}GB c: #{result.critical}GB)"
 
