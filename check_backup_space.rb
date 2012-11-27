@@ -20,7 +20,6 @@ You should have received a copy of the GNU General Public License along with
 this script. If not, see <http://www.gnu.org/licenses/>.
 =end
 
-require 'rubygems'
 require 'optparse'
 require 'pathname'
 
@@ -117,7 +116,7 @@ Released under the GNU GENERAL PUBLIC LICENSE Version 3. © Daniel Meißner, 201
 
   protected
 
-  # Class method to check that all needed options are present. This function is only used in *run!* method.
+  # Class method to check that all needed options are present. This method is only used in *run!* method.
   #
   # @param [Hash] options
   # @return [Hash]

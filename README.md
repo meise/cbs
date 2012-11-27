@@ -55,7 +55,7 @@ You can use this script as any other nagios plugin. A example configuration look
 
 ### Nagios Server
 
-Define a new service direktly attached to a spezific host.
+Define a new service for spezific host.
 
     define service{
         use                             remote-service
