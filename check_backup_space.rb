@@ -31,7 +31,7 @@ require 'pathname'
 class Cbs
 
   NAME    = 'Cbs'
-  VERSION = '0.0.1'
+  VERSION = '0.0.2'
 
 end
 
@@ -40,7 +40,7 @@ class Cbs::Parser
 
   # Run parser.
   #
-  # @return [Hash] of options the parser detected.
+  # @return [Hash] options the parser detected
   def self.run!
     options = {}
 
@@ -149,40 +149,45 @@ Released under the GNU GENERAL PUBLIC LICENSE Version 3. © Daniel Meißner, 201
   # Password can be read from password file. This method implements that functionality,
   #
   # @param [Pathname, String] file for password
-  # @return [String] password read from file.
+  # @return [String] password read from file
   def self.read_password(file)
     File.read( Pathname.new(file) ).chomp
   end
 end
 
+# Get disk usage.
 class Cbs::SpaceChecker
-  # @return [String] password read from password file.s
 
   attr_reader :disk_usage, :free_space, :quota
 
   # @param [Hash] options
   def initialize( options = {} )
     @options    = options
+
+    @lftp       = check_dependencies
     @disk_usage = get_disk_usage
     @quota      = @options[:quota]
     @free_space = calculate_free_space(@quota, @disk_usage)
   end
 
-  # Function to check dependencies
+  # Function to check dependencies.
   #
   # Lftp is used to check available disk space. This program must be installed.
+  # @return [String] lftp binary path
   def check_dependencies
-    @lftp = %x{which lftp}.chomp
+    lftp = %x{which lftp}.chomp
 
-    if @lftp.empty?
+    if lftp.empty?
       puts 'Lftp program is missing.'
       exit 3
     end
+
+    lftp
   end
 
   # Connect to remote disk and returned disk usage as floating number.
   #
-  # @return [Float] Disk usage.
+  # @return [Float] disk usage
   def get_disk_usage
     # result in bytes
     result = %x{#{@lftp} -u #{@options[:user]},#{@options[:password]} #{@options[:protocol]}://#{@options[:host]} -e "du -sb .; exit"}
@@ -192,7 +197,7 @@ class Cbs::SpaceChecker
 
   # Calculates free disk space on given values.
   #
-  # @param [Float, Float] quota quota limit and disk usage.
+  # @param [Float, Float] quota quota limit and disk usage
   # @return [Float] of free space.
   def calculate_free_space(quota, disk_usage)
     quota - (disk_usage/1024/1024/1024)
