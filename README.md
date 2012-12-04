@@ -11,7 +11,7 @@ Description
 
 Cbs is a Ruby script to check available disk space on remote systems via (s)ftp or ssh. The script can be used together with
 [Nagios][nagios] or [Icinga][icinga] for backup spaces provided by
-[Hetzer][hetzner] to every root or vServer.
+[Hetzner][hetzner] to every root or vServer.
 
 [nagios]:http://www.nagios.org
 [icinga]:https://www.icinga.org
